@@ -12,7 +12,8 @@
                  [sablono "0.7.5"]
                  [cljsjs/react "15.2.1-1"]
                  [cljsjs/react-dom "15.2.1-1"]
-                 [cljsjs/react-dom-server "15.2.1-1"]])
+                 [cljsjs/react-dom-server "15.2.1-1"]
+                 [freactive "0.1.0"]])
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
