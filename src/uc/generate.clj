@@ -1,8 +1,8 @@
 (ns uc.generate
- (require [clojure.java.shell :refer [sh]]
-          [clojure.java.io :as io]))
+ (require [clojure.java.shell :refer [sh]]))
 
 (def tex2svg "/usr/local/lib/node_modules/mathjax-node/bin/tex2svg")
+
 (def formulas [{:n "tau"
                 :f "\\tau"}
                {:n "etau"
@@ -59,5 +59,5 @@
 (defn renderer [{:keys [n f]}]
   (spit (str "resources/img/" n ".svg") (:out (sh tex2svg (str "\\begin{equation} " f "\\end{equation}")))))
 
-(defn -main []
-  (map renderer formulas))
+(defn -main [& args]
+  (doall (map renderer formulas)))
