@@ -7,13 +7,7 @@
 (enable-console-print!)
 
 (def tau (* 2 Math/PI))
-
-(defn trunc-100 [n]
-  (/ (Math/trunc (* 100 n))
-     100))
-
-(def h (min (.-innerWidth js/window)
-            (.-innerHeight js/window)))
+(def h (min (.-innerWidth js/window) (.-innerHeight js/window)))
 (def c (/ h 2))
 (def r (* c 0.78))
 (def r_2 (/ r 2))
@@ -23,16 +17,19 @@
 (defonce mouse-x (atom nil))
 (defonce mouse-y (atom nil))
 
-(defonce listeners (do (dom/listen! js/window "mousemove"
-                                    (fn [e]
-                                      (reset! mouse-x (.-clientX e))
-                                      (reset! mouse-y (.-clientY e))))))
+(defonce listeners
+  (dom/listen! js/window "mousemove"
+               (fn [e]
+                 (reset! mouse-x (.-clientX e))
+                 (reset! mouse-y (.-clientY e)))))
+
+(defn trunc-100 [n]
+  (/ (Math/trunc (* 100 n)) 100))
 
 (defn l [stroke x y]
   [:svg/line {:x1 c :y1 c :x2 (+ c x) :y2 (+ c y) :stroke stroke}])
 
 (def line (partial l "black"))
-(def green-line (partial l "green"))
 
 (defn point [x y]
   [:svg/circle {:cx (+ c x)
@@ -69,26 +66,27 @@
                   :y (- (f (+ c (* x s))) (* (* r z) 0.9))
                   :height "7%" :width "7%"}]]))
 
-(defn arc [theta x y]
-  (let [path #([:svg/path {:fill "none" :stroke "red"
+(defn arc [pr theta x y]
+  (let [radius (* r pr)
+        path #([:svg/path {:fill "none" :stroke "red"
                            :d (apply str (interpose " " %))}])
-        angles (let [qu (quot theta (/ tau 4))
-                     re (rem theta (/ tau 4))]
-                 )
-        flag #(if (<= % Math/PI)
-               "0"
-               "1")]
-    ["M"
-     (+ c r)
-     c
-     "A"
-     r
-     r
-     0
-     flag
-     0
-     x
-     y]))
+        angles (let [qu (quot theta (/ tau 4))]
+                 (if (= qu 0)
+                   [theta]
+                   (-> (reduce (fn [acc a] (conj acc (+ (last acc) a)))
+                              [] (repeat qu (/ tau 4)))
+                       (conj theta))))
+        arc (fn [angle] ["A" radius radius 0 0 0
+                         (+ c (* radius (Math/cos angle)))
+                         (+ c (- (* radius (Math/sin angle))))])]
+    [:svg/path {:stroke "green"
+                :stroke-width "2px"
+                :fill "none"
+                :d (-> ["M" (+ c radius) c]
+                       (into (map arc angles))
+                       (flatten)
+                       (->> (interpose " ")
+                            (apply str)))}]))
 
 (defn svg []
   [:svg/svg {:width h :height h}
@@ -129,48 +127,63 @@
    (line (- r_2) (- s3_2))
    (eq "img/tau_3.svg" (- r_2) (- s3_2))
    (coord "img/tau_6-coord.svg" (- r_2) (- s3_2))
-   ;key 
-   [:svg/svg {:x (- c  s2_2 25) :y (+ c (/ s2_2 2) -32)}
-    [:svg/image {:href "img/key1.svg" :x 5 :y -5  :height "7%" :width "24%"}]
-    [:svg/image {:href "img/key2.svg" :x 10 :y 27  :height "7%" :width "24%"}]
-    [:svg/rect {:x 1 :y 0 :height 66 :width 181 :fill-opacity 0 :stroke "red"}]]
    ;widget
-   (rx (let [y (- @mouse-y c)
-             x (if (> @mouse-x c)
+   (rx (let [x (if (> @mouse-x c)
                  (- @mouse-x c)
                  (- (- c @mouse-x)))
-             theta (if (> x 0)
-                     (Math/atan (/ y x))
-                     (+ Math/PI (Math/atan (/ y x))))
+             y (- @mouse-y c)
+             theta (cond (< x 0) (+ (/ tau 2)(Math/atan (/ (- y) x)))
+                         (and (> x 0) (< (- y) 0)) (+ tau (Math/atan (/ (- y) x)))
+                         :else (Math/atan (/ (- y) x)))
              cos-theta (* r (Math/cos theta))
-             sin-theta (* r (Math/sin theta))]
+             sin-theta (- (* r (Math/sin theta)))]
          [:svg/svg
-          (green-line cos-theta sin-theta)
+          [:svg/text {:x (+ c (* 0.07 h))
+                      :y (+ c (- (* 0.009 h)))
+                      :font-family  "Verdana"
+                      :font-size "5%"
+                      :stroke "darkgreen"}
+           (str "θ = "(trunc-100 theta))]
+          [:svg/line {:x1 c
+                      :y1 c
+                      :x2 (+ c cos-theta)
+                      :y2 (+ c sin-theta)
+                      :stroke "darkgreen"
+                      :stroke-width "2px"}]
           [:svg/line {:x1 (+ c cos-theta)
                       :y1 c
                       :x2 (+ c cos-theta)
                       :y2 (+ c sin-theta)
-                      :stroke "blue"}]
-          [:svg/text {:x (/ (+ (+ c cos-theta)(+ c cos-theta))
-                            2)
-                      :y (/ (+ c (+ c sin-theta))
-                            2)
-                      :font-family  "Verdana"
-                      :font-size "5%"
-                      :stroke "darkblue"}
+                      :stroke "blue"
+                      :stroke-width "2px"}]
+          [:svg/text {:x (+ c cos-theta)
+                      :y (+ c (/ (- (+ c sin-theta) c)
+                                 3.14))
+                      :font-family  "Verdana" :font-size "5%" :stroke "darkblue"}
            (str (trunc-100 (/ (- sin-theta) r)))]
           [:svg/line {:x1 c :y1 c
                       :x2 (+ c cos-theta) :y2 c 
-                      :stroke "red"}]
-          [:svg/text {:x (/ (+ c (+ c cos-theta))
-                            2)
-                      :y (/ (+ c c)
-                            2)
+                      :stroke "red"
+                      :stroke-width "2px"}]
+          [:svg/text {:x (+ c (/ (- (+ c cos-theta) c)
+                                 2.7))
+                      :y (+ c (* 0.015 h))
                       :font-family  "Verdana"
                       :font-size "5%"
                       :stroke "darkred"}
            (str (trunc-100 (/ cos-theta r)))]
-          (point cos-theta sin-theta)]))])
+          (arc 0.360 theta (+ c cos-theta) (+ c sin-theta))]))
+   ;key
+   [:svg/svg {:x (- c  s2_2 (* 0.02 h)) :y (+ c (/ s2_2 2) (* 0.009 h))}
+    [:svg/image {:href "img/key1.svg"
+                 :x (* 0.01 h)
+                 :y (- (* 0.01 h))
+                 :height "7%" :width "24%"}]
+    [:svg/image {:href "img/key2.svg"
+                 :x (* 0.0175 h)
+                 :y (* 0.03 h)
+                 :height "7%" :width "24%"}]
+    [:svg/rect {:x 1 :y 0 :height (* 0.10 h) :width (* 0.27 h) :fill-opacity 0 :stroke "red"}]]])
 
 (defonce root (dom/append-child! (.-body js/document) [:div#root]))
 
