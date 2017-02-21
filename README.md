@@ -3,7 +3,7 @@ Unit Circle using [Tau](http://tauday.com/tau-manifesto) as the circle constant.
 
 ## Instructions
 
-1. Install [lein](http://leiningen.org/#install), [boot](https://github.com/boot-clj/boot#install), and the latest[JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+1. Install [lein](http://leiningen.org/#install), [boot](https://github.com/boot-clj/boot#install), and the latest [JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
 
 2. On a terminal execute:
  $ lein run
